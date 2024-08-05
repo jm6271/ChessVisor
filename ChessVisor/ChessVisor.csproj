@@ -1,0 +1,78 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UseWPF>true</UseWPF>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove="Assets\**" />
+    <EmbeddedResource Remove="Assets\**" />
+    <None Remove="Assets\**" />
+    <Page Remove="Assets\**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Remove="ChessHighlighting.xshd" />
+    <None Remove="Resources\Black_Bishop.png" />
+    <None Remove="Resources\Black_King.png" />
+    <None Remove="Resources\Black_Knight.png" />
+    <None Remove="Resources\Black_Pawn.png" />
+    <None Remove="Resources\Black_Queen.png" />
+    <None Remove="Resources\Black_Rook.png" />
+    <None Remove="Resources\chess.png" />
+    <None Remove="Resources\White_Bishop.png" />
+    <None Remove="Resources\White_King.png" />
+    <None Remove="Resources\White_Knight.png" />
+    <None Remove="Resources\White_Pawn.png" />
+    <None Remove="Resources\White_Queen.png" />
+    <None Remove="Resources\White_Rook.png" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Resource Include="Resources\Black_Knight.png" />
+    <Resource Include="Resources\Black_Rook.png" />
+    <Resource Include="Resources\White_Knight.png" />
+    <Resource Include="Resources\White_Queen.png" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="AvalonEdit" Version="6.3.0.90" />
+    <PackageReference Include="WPF-UI" Version="3.0.4" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\ChessParser\ChessParser.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Resource Include="Resources\Black_Bishop.png" />
+    <Resource Include="Resources\Black_King.png" />
+    <Resource Include="Resources\Black_Pawn.png" />
+    <Resource Include="Resources\Black_Queen.png" />
+    <Resource Include="Resources\chess.png" />
+    <Resource Include="Resources\White_Bishop.png" />
+    <Resource Include="Resources\White_King.png" />
+    <Resource Include="Resources\White_Pawn.png" />
+    <Resource Include="Resources\White_Rook.png" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Update="Properties\Resources.Designer.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Resources.resx</DependentUpon>
+    </Compile>
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Update="Properties\Resources.resx">
+      <Generator>ResXFileCodeGenerator</Generator>
+      <LastGenOutput>Resources.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
+  </ItemGroup>
+
+</Project>
