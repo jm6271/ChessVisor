@@ -82,6 +82,8 @@ namespace ChessVisor
 
             foreach (var move in Moves)
             {
+                if (move.WhiteNotation == "") continue;
+
                 ICharStream whiteCharStream = CharStreams.fromString(move.WhiteNotation);
                 ICharStream blackCharStream = CharStreams.fromString(move.BlackNotation);
 
@@ -99,6 +101,8 @@ namespace ChessVisor
                 lexer = new(blackCharStream);
                 commonTokenStream = new(lexer);
                 parser = new(commonTokenStream);
+
+                if (move.BlackNotation == "") continue;
 
                 context = parser.parse();
                 visitor = new();
