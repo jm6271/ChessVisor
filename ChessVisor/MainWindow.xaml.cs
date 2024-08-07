@@ -66,6 +66,9 @@ namespace ChessVisor
                 }
             }
 
+            if (Moves.Count == 1 && Moves[0].WhiteNotation == "")
+                return;
+
             List<ChessMove> ParsedMoves = ParseMoves(Moves);
 
             manager.PlayGame(ParsedMoves);
