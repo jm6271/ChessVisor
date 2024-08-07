@@ -1,5 +1,7 @@
 ﻿using System.Windows;
+using Antlr4.Runtime;
 using ChessNotationParser;
+using ChessNotationParser.AST;
 
 namespace ChessVisor
 {
@@ -64,13 +66,45 @@ namespace ChessVisor
                 }
             }
 
-            
+            List<ChessMove> ParsedMoves = ParseMoves(Moves);
+
+            manager.PlayGame(ParsedMoves);
         }
 
-        private void MovePiece(ChessMove move)
+        private List<ChessMove> ParseMoves(List<MoveNotation> Moves)
         {
-            manager.Move(move);
+            // parse the moves
 
+            List<ChessMove> ParsedMoves = [];
+
+            foreach (var move in Moves)
+            {
+                ICharStream whiteCharStream = CharStreams.fromString(move.WhiteNotation);
+                ICharStream blackCharStream = CharStreams.fromString(move.BlackNotation);
+
+                ChessLexer lexer = new(whiteCharStream);
+                CommonTokenStream commonTokenStream = new(lexer);
+                ChessParser parser = new(commonTokenStream);
+
+                ChessParser.ParseContext context = parser.parse();
+                ChessMoveVisitor visitor = new();
+
+                ChessNotationParser.AST.Parse whiteAST = (Parse)visitor.VisitParse(context);
+                ChessMove whiteMove = new(ChessPiece.PieceColor.White, whiteAST);
+                ParsedMoves.Add(whiteMove);
+
+                lexer = new(blackCharStream);
+                commonTokenStream = new(lexer);
+                parser = new(commonTokenStream);
+
+                context = parser.parse();
+                visitor = new();
+                ChessNotationParser.AST.Parse blackAST = (Parse)visitor.VisitParse(context);
+                ChessMove blackMove = new(ChessPiece.PieceColor.Black, blackAST);
+                ParsedMoves.Add(blackMove);
+            }
+
+            return ParsedMoves;
         }
 
         private void PopulateWhitePieces()
