@@ -9,6 +9,13 @@
                  aria-hidden="true"></div>
         }
 
+        @if (Position.CheckedKingSquare is { } checkedKingSquare)
+        {
+            <div class="king-danger @(Position.IsCheckmate ? "is-checkmate" : "is-check")"
+                 style="@SquareStyle(checkedKingSquare)"
+                 aria-hidden="true"></div>
+        }
+
         @foreach (var piece in Pieces)
         {
             var isMoving = TryGetAnimationTarget(piece, out var target);
@@ -72,7 +79,10 @@
     public bool Flipped { get; set; }
 
     private IReadOnlyList<BoardPiece> Pieces =>
-        ChessMatch.FromFen(Fen).Pieces;
+        Position.Pieces;
+
+    private ChessMatch Position =>
+        ChessMatch.FromFen(Fen);
 
     private string PieceKey(BoardPiece piece) =>
         $"{piece.Side}-{piece.Type}-{piece.Square}";

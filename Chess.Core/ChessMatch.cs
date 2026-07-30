@@ -63,6 +63,19 @@ public sealed class ChessMatch
 
     public IReadOnlyList<string> SanHistory => _sanHistory;
 
+    public Square? CheckedKingSquare
+    {
+        get
+        {
+            var king = FindKing(_board, _sideToMove);
+            return IsSquareAttacked(_board, king, Opposite(_sideToMove))
+                ? ToSquare(king)
+                : null;
+        }
+    }
+
+    public bool IsCheckmate => Outcome?.Reason == GameEndReason.Checkmate;
+
     public IReadOnlyList<BoardPiece> Pieces => _board
         .Select((piece, index) => (Piece: piece, Index: index))
         .Where(item => item.Piece is not null)

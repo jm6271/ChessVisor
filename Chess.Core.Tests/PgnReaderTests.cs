@@ -160,4 +160,27 @@ public sealed class PgnReaderTests
         Assert.Equal(game.FinalFen, match.Fen);
         Assert.Equal(["e4", "e5", "Nf3", "Nc6"], match.SanHistory);
     }
+
+    [Fact]
+    public void FromFen_ReportsTheCheckedKingSquare()
+    {
+        var safePosition = new ChessMatch();
+        var checkedPosition = ChessMatch.FromFen(
+            "4k3/8/8/8/8/8/4R3/4K3 b - - 0 1");
+
+        Assert.Null(safePosition.CheckedKingSquare);
+        Assert.Equal(new Square('e', 8), checkedPosition.CheckedKingSquare);
+        Assert.False(checkedPosition.IsCheckmate);
+    }
+
+    [Fact]
+    public void FromFen_ReportsCheckmate()
+    {
+        var position = ChessMatch.FromFen(
+            "7k/6Q1/6K1/8/8/8/8/8 b - - 0 1");
+
+        Assert.Equal(new Square('h', 8), position.CheckedKingSquare);
+        Assert.True(position.IsCheckmate);
+        Assert.Equal(GameEndReason.Checkmate, position.Outcome?.Reason);
+    }
 }
