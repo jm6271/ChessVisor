@@ -1,0 +1,177 @@
+<div class="chessboard-frame" aria-label="Chess board">
+    <div class="board-surface @(AnimationActive ? "animation-active" : null)">
+        @foreach (var square in Squares)
+        {
+            var isHighlighted = LastMove is not null &&
+                (square == LastMove.Value.From || square == LastMove.Value.To);
+            <div class="board-square-overlay @(isHighlighted ? "last-move" : null)"
+                 style="@SquareStyle(square)"
+                 aria-hidden="true"></div>
+        }
+
+        @foreach (var piece in Pieces)
+        {
+            var isMoving = TryGetAnimationTarget(piece, out var target);
+            var isCaptured = IsCapturedPiece(piece);
+            <img @key="@PieceKey(piece)"
+                 class="board-piece @(isMoving ? "is-moving" : null) @(isCaptured ? "is-captured" : null)"
+                 style="@PieceStyle(piece, isMoving ? target : null)"
+                 src="@PieceImage(piece)"
+                 alt="@($"{piece.Side} {piece.Type} on {piece.Square}")"
+                 draggable="false" />
+        }
+
+        @foreach (var file in Files)
+        {
+            var square = Flipped
+                ? new Square(file, 8)
+                : new Square(file, 1);
+            <span class="coordinate coordinate-file"
+                  style="@SquareStyle(square)">
+                @file
+            </span>
+        }
+
+        @foreach (var rank in Ranks)
+        {
+            var square = Flipped
+                ? new Square('h', rank)
+                : new Square('a', rank);
+            <span class="coordinate coordinate-rank"
+                  style="@SquareStyle(square)">
+                @rank
+            </span>
+        }
+    </div>
+</div>
+
+@code {
+    private static readonly char[] Files = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
+    private static readonly int[] Ranks = [1, 2, 3, 4, 5, 6, 7, 8];
+    private static readonly Square[] Squares =
+        (from rank in Ranks
+         from file in Files
+         select new Square(file, rank)).ToArray();
+
+    [Parameter, EditorRequired]
+    public string Fen { get; set; } = string.Empty;
+
+    [Parameter]
+    public ChessMove? LastMove { get; set; }
+
+    [Parameter]
+    public ChessMove? AnimationMove { get; set; }
+
+    [Parameter]
+    public bool AnimationReverse { get; set; }
+
+    [Parameter]
+    public bool AnimationActive { get; set; }
+
+    [Parameter]
+    public bool Flipped { get; set; }
+
+    private IReadOnlyList<BoardPiece> Pieces =>
+        ChessMatch.FromFen(Fen).Pieces;
+
+    private string PieceKey(BoardPiece piece) =>
+        $"{piece.Side}-{piece.Type}-{piece.Square}";
+
+    private string PieceImage(BoardPiece piece) =>
+        $"assets/{piece.Side}_{piece.Type}.png";
+
+    private string PieceStyle(BoardPiece piece, Square? target)
+    {
+        var (left, top) = Coordinates(piece.Square);
+        var style = FormattableString.Invariant(
+            $"left:{left}%;top:{top}%;");
+        if (target is null)
+        {
+            return style;
+        }
+
+        var (targetLeft, targetTop) = Coordinates(target.Value);
+        var x = (targetLeft - left) * 8;
+        var y = (targetTop - top) * 8;
+        return style + FormattableString.Invariant(
+            $"--move-x:{x}%;--move-y:{y}%;");
+    }
+
+    private string SquareStyle(Square square)
+    {
+        var (left, top) = Coordinates(square);
+        return FormattableString.Invariant($"left:{left}%;top:{top}%;");
+    }
+
+    private (decimal Left, decimal Top) Coordinates(Square square)
+    {
+        var fileIndex = square.File - 'a';
+        var rankIndex = square.Rank - 1;
+        if (Flipped)
+        {
+            fileIndex = 7 - fileIndex;
+            rankIndex = 7 - rankIndex;
+        }
+
+        return (fileIndex * 12.5m, (7 - rankIndex) * 12.5m);
+    }
+
+    private bool TryGetAnimationTarget(BoardPiece piece, out Square target)
+    {
+        target = default;
+        if (AnimationMove is not { } move)
+        {
+            return false;
+        }
+
+        var start = AnimationReverse ? move.To : move.From;
+        var end = AnimationReverse ? move.From : move.To;
+        if (piece.Square == start)
+        {
+            target = end;
+            return true;
+        }
+
+        if (!move.San.StartsWith("O-O", StringComparison.Ordinal) ||
+            piece.Type != PieceType.Rook)
+        {
+            return false;
+        }
+
+        var rank = move.From.Rank;
+        var kingSide = move.To.File == 'g';
+        var rookFrom = new Square(kingSide ? 'h' : 'a', rank);
+        var rookTo = new Square(kingSide ? 'f' : 'd', rank);
+        var rookStart = AnimationReverse ? rookTo : rookFrom;
+        if (piece.Square != rookStart)
+        {
+            return false;
+        }
+
+        target = AnimationReverse ? rookFrom : rookTo;
+        return true;
+    }
+
+    private bool IsCapturedPiece(BoardPiece piece)
+    {
+        if (AnimationMove is not { } move || AnimationReverse)
+        {
+            return false;
+        }
+
+        if (piece.Square == move.To && piece.Square != move.From)
+        {
+            return true;
+        }
+
+        var movingPiece = Pieces.FirstOrDefault(candidate => candidate.Square == move.From);
+        if (movingPiece.Type != PieceType.Pawn ||
+            move.From.File == move.To.File ||
+            Pieces.Any(candidate => candidate.Square == move.To))
+        {
+            return false;
+        }
+
+        return piece.Square == new Square(move.To.File, move.From.Rank);
+    }
+}

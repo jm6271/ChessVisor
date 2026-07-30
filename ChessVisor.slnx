@@ -1,0 +1,5 @@
+<Solution>
+  <Project Path="Chess.Core/Chess.Core.csproj" />
+  <Project Path="Chess.Core.Tests/Chess.Core.Tests.csproj" />
+  <Project Path="ChessVisor/ChessVisor.csproj" />
+</Solution>

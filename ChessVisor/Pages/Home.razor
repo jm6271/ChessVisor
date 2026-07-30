@@ -1,0 +1,289 @@
+@page "/"
+@inject IJSRuntime JS
+
+<PageTitle>ChessVisor · PGN replay and analysis</PageTitle>
+
+<div class="app-shell" data-theme="@_theme">
+    <header class="app-header">
+        <a class="brand" href="/" aria-label="ChessVisor home">
+            <span class="brand-mark" aria-hidden="true">CV</span>
+            <span>
+                <strong>ChessVisor</strong>
+                <small>PGN replay studio</small>
+            </span>
+        </a>
+
+        <div class="theme-picker" role="group" aria-label="Color theme">
+            @foreach (var theme in Themes)
+            {
+                <button type="button"
+                        class="@(_theme == theme.Value ? "active" : null)"
+                        aria-pressed="@(_theme == theme.Value)"
+                        title="@($"{theme.Label} theme")"
+                        @onclick="() => SetThemeAsync(theme.Value)">
+                    <span aria-hidden="true">@theme.Icon</span>
+                    <span class="theme-label">@theme.Label</span>
+                </button>
+            }
+        </div>
+    </header>
+
+    <main class="workspace">
+        <section class="board-column">
+            <div class="player-strip">
+                <span class="side-chip dark-piece" aria-hidden="true"></span>
+                <span class="player-name">@TopPlayer</span>
+                @if (TopSide == CurrentSide)
+                {
+                    <span class="turn-indicator">To move</span>
+                }
+            </div>
+
+            <div class="board-focus"
+                 tabindex="0"
+                 role="group"
+                 aria-label="Chess board. Use left and right arrow keys to step, space to play or pause."
+                 @onkeydown="HandleBoardKeyAsync">
+                <ChessBoard Fen="@_displayFen"
+                            LastMove="@CurrentMove"
+                            AnimationMove="@_animationMove"
+                            AnimationReverse="@_animationReverse"
+                            AnimationActive="@_animationActive"
+                            Flipped="@_boardFlipped" />
+            </div>
+
+            <div class="player-strip">
+                <span class="side-chip light-piece" aria-hidden="true"></span>
+                <span class="player-name">@BottomPlayer</span>
+                @if (BottomSide == CurrentSide)
+                {
+                    <span class="turn-indicator">To move</span>
+                }
+            </div>
+
+            <div class="playback-card">
+                <div class="playback-status">
+                    <div>
+                        <span class="eyebrow">Position</span>
+                        <strong>@PositionLabel</strong>
+                    </div>
+                    <button type="button"
+                            class="icon-button flip-button"
+                            title="Flip board"
+                            aria-label="Flip board"
+                            @onclick="FlipBoard">
+                        ↻
+                    </button>
+                </div>
+
+                <div class="transport" role="group" aria-label="Playback controls">
+                    <button type="button"
+                            class="icon-button"
+                            title="Restart"
+                            aria-label="Restart game"
+                            disabled="@(!HasMoves || _isAnimating)"
+                            @onclick="RestartAsync">
+                        ↤
+                    </button>
+                    <button type="button"
+                            class="icon-button"
+                            title="Previous move"
+                            aria-label="Previous move"
+                            disabled="@(_currentPosition == 0 || _isAnimating)"
+                            @onclick="PreviousAsync">
+                        ‹
+                    </button>
+                    <button type="button"
+                            class="play-button"
+                            aria-label="@(_isPlaying ? "Pause game" : "Play game")"
+                            disabled="@(!HasMoves || _isAnimating)"
+                            @onclick="TogglePlaybackAsync">
+                        <span aria-hidden="true">@(_isPlaying ? "Ⅱ" : "▶")</span>
+                        @(_isPlaying ? "Pause" : "Play")
+                    </button>
+                    <button type="button"
+                            class="icon-button"
+                            title="Next move"
+                            aria-label="Next move"
+                            disabled="@(!CanGoNext || _isAnimating)"
+                            @onclick="NextAsync">
+                        ›
+                    </button>
+                    <button type="button"
+                            class="icon-button"
+                            title="Go to final position"
+                            aria-label="Go to final position"
+                            disabled="@(!CanGoNext || _isAnimating)"
+                            @onclick="GoToEndAsync">
+                        ↦
+                    </button>
+                </div>
+
+                <div class="speed-picker" role="group" aria-label="Playback speed">
+                    @foreach (var speed in Speeds)
+                    {
+                        <button type="button"
+                                class="@(_speed == speed ? "active" : null)"
+                                aria-pressed="@(_speed == speed)"
+                                @onclick="() => _speed = speed">
+                            @speed.ToString("0.#")×
+                        </button>
+                    }
+                </div>
+            </div>
+        </section>
+
+        <section class="analysis-panel">
+            <div class="panel-heading">
+                <div>
+                    <span class="eyebrow">Game source</span>
+                    <h1>Replay a PGN</h1>
+                </div>
+                @if (_game is not null)
+                {
+                    <span class="loaded-badge">Loaded</span>
+                }
+            </div>
+
+            <p class="panel-intro">
+                Paste notation below or open a PGN file. Everything stays in your browser.
+            </p>
+
+            <label class="field-label" for="pgn-input">PGN notation</label>
+            <textarea id="pgn-input"
+                      @ref="_pgnTextArea"
+                      @bind="_pgnText"
+                      @bind:event="oninput"
+                      spellcheck="false"
+                      placeholder="@PgnPlaceholder"
+                      aria-describedby="pgn-help"></textarea>
+            <div class="input-actions">
+                <label class="file-button">
+                    <InputFile OnChange="OpenFileAsync" accept=".pgn,text/plain" />
+                    <span aria-hidden="true">↑</span>
+                    Open PGN
+                </label>
+                <span id="pgn-help" class="file-name">@(_fileName ?? "Maximum file size: 2 MB")</span>
+                <button type="button"
+                        class="load-button"
+                        disabled="@string.IsNullOrWhiteSpace(_pgnText)"
+                        @onclick="LoadGameAsync">
+                    Load game
+                </button>
+            </div>
+
+            @if (_notationError is not null)
+            {
+                <div class="notation-error" role="alert" aria-live="assertive">
+                    <div class="error-icon" aria-hidden="true">!</div>
+                    <div>
+                        <strong>@ErrorTitle</strong>
+                        <p>@_notationError.Message</p>
+                        @if (_notationError.SourceSpan is { } span)
+                        {
+                            <button type="button" @onclick="JumpToErrorAsync">
+                                Jump to line @span.Line, column @span.Column
+                            </button>
+                        }
+                    </div>
+                </div>
+            }
+
+            @if (_game is not null)
+            {
+                <div class="game-summary">
+                    <div class="game-title">
+                        <div>
+                            <span>@Header("White", "White")</span>
+                            <small>White</small>
+                        </div>
+                        <strong>@ResultLabel</strong>
+                        <div class="black-player">
+                            <span>@Header("Black", "Black")</span>
+                            <small>Black</small>
+                        </div>
+                    </div>
+                    @if (HasEventDetails)
+                    {
+                        <p>@EventDetails</p>
+                    }
+                </div>
+
+                @if (ActiveComments.Count > 0)
+                {
+                    <aside class="comment-card" aria-label="Comment for active move">
+                        <span class="eyebrow">Game comment</span>
+                        @foreach (var comment in ActiveComments)
+                        {
+                            <p>@comment.Text</p>
+                        }
+                    </aside>
+                }
+
+                <div class="moves-heading">
+                    <div>
+                        <span class="eyebrow">Main line</span>
+                        <h2>@_game.Moves.Count moves</h2>
+                    </div>
+                    <span>@_currentPosition / @_game.Moves.Count</span>
+                </div>
+
+                <div class="move-list" aria-label="Game moves">
+                    @foreach (var row in MoveRows)
+                    {
+                        <div class="move-row">
+                            <span class="move-number">@row.MoveNumber.</span>
+                            @if (row.White is not null)
+                            {
+                                <button type="button"
+                                        data-ply="@(row.White.Index + 1)"
+                                        class="move-cell @(IsActive(row.White) ? "active" : null)"
+                                        aria-current="@(IsActive(row.White) ? "step" : null)"
+                                        @onclick="() => SeekAsync(row.White.Index + 1)">
+                                    @row.White.DisplaySan
+                                    @if (HasComment(row.White))
+                                    {
+                                        <span class="comment-dot" title="This move has a comment"></span>
+                                    }
+                                </button>
+                            }
+                            else
+                            {
+                                <span class="move-cell empty"></span>
+                            }
+
+                            @if (row.Black is not null)
+                            {
+                                <button type="button"
+                                        data-ply="@(row.Black.Index + 1)"
+                                        class="move-cell @(IsActive(row.Black) ? "active" : null)"
+                                        aria-current="@(IsActive(row.Black) ? "step" : null)"
+                                        @onclick="() => SeekAsync(row.Black.Index + 1)">
+                                    @row.Black.DisplaySan
+                                    @if (HasComment(row.Black))
+                                    {
+                                        <span class="comment-dot" title="This move has a comment"></span>
+                                    }
+                                </button>
+                            }
+                            else
+                            {
+                                <span class="move-cell empty"></span>
+                            }
+                        </div>
+                    }
+                </div>
+            }
+            else
+            {
+                <div class="empty-state">
+                    <span class="empty-icon" aria-hidden="true">♘</span>
+                    <strong>Your analysis board is ready</strong>
+                    <p>Load a game to reveal its move list, comments, and playback controls.</p>
+                </div>
+            }
+        </section>
+    </main>
+
+    <div class="sr-only" aria-live="polite">@_announcement</div>
+</div>
