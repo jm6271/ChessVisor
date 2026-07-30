@@ -18,7 +18,7 @@
             {
                 <button type="button"
                         class="@(_theme == theme.Value ? "active" : null)"
-                        aria-pressed="@(_theme == theme.Value)"
+                        aria-pressed="@(_theme == theme.Value ? "true" : "false")"
                         title="@($"{theme.Label} theme")"
                         @onclick="() => SetThemeAsync(theme.Value)">
                     <span aria-hidden="true">@theme.Icon</span>
@@ -68,9 +68,10 @@
                         <strong>@PositionLabel</strong>
                     </div>
                     <button type="button"
-                            class="icon-button flip-button"
+                            class="icon-button flip-button @(_boardFlipped ? "active" : null)"
                             title="Flip board"
                             aria-label="Flip board"
+                            aria-pressed="@(_boardFlipped ? "true" : "false")"
                             @onclick="FlipBoard">
                         ↻
                     </button>
@@ -94,8 +95,9 @@
                         ‹
                     </button>
                     <button type="button"
-                            class="play-button"
+                            class="play-button @(_isPlaying ? "active" : null)"
                             aria-label="@(_isPlaying ? "Pause game" : "Play game")"
+                            aria-pressed="@(_isPlaying ? "true" : "false")"
                             disabled="@(!HasMoves || _isAnimating)"
                             @onclick="TogglePlaybackAsync">
                         <span aria-hidden="true">@(_isPlaying ? "Ⅱ" : "▶")</span>
@@ -124,7 +126,7 @@
                     {
                         <button type="button"
                                 class="@(_speed == speed ? "active" : null)"
-                                aria-pressed="@(_speed == speed)"
+                                aria-pressed="@(_speed == speed ? "true" : "false")"
                                 @onclick="() => _speed = speed">
                             @speed.ToString("0.#")×
                         </button>

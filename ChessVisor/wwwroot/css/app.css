@@ -17,7 +17,6 @@ body,
 }
 
 body {
-    min-width: 320px;
     background: #f3ede3;
 }
 
@@ -29,6 +28,24 @@ input {
 
 button {
     cursor: pointer;
+}
+
+button,
+.file-button {
+    transition:
+        transform 90ms ease,
+        box-shadow 90ms ease,
+        background-color 120ms ease,
+        border-color 120ms ease,
+        color 120ms ease,
+        filter 90ms ease;
+}
+
+button:not(:disabled):active,
+.file-button:active {
+    transform: translateY(2px) scale(0.97);
+    box-shadow: inset 0 3px 7px rgba(47, 31, 20, 0.24);
+    filter: saturate(0.9);
 }
 
 button:disabled {
@@ -52,6 +69,9 @@ button:disabled {
     --error: #a33b35;
     --error-soft: #fae8e5;
     --shadow: 0 28px 70px rgba(70, 52, 34, 0.12);
+    --content-max: 1120px;
+    --board-surface-max: 416px;
+    --board-frame-padding: clamp(7px, 1.2vw, 12px);
     min-height: 100vh;
     color: var(--ink);
     background:
@@ -103,7 +123,7 @@ button:disabled {
 }
 
 .app-header {
-    width: min(1460px, calc(100% - 48px));
+    width: min(var(--content-max), calc(100% - 48px));
     min-height: 86px;
     margin: 0 auto;
     display: flex;
@@ -180,23 +200,29 @@ button:disabled {
 }
 
 .theme-picker button.active {
-    color: var(--ink);
-    background: var(--panel-subtle);
-    box-shadow: inset 0 0 0 1px var(--line);
+    color: var(--accent-strong);
+    background: var(--accent-soft);
+    box-shadow:
+        inset 0 0 0 1px color-mix(in srgb, var(--accent) 42%, transparent),
+        inset 0 2px 5px rgba(67, 39, 20, 0.14);
 }
 
 .workspace {
-    width: min(1460px, calc(100% - 48px));
+    width: min(var(--content-max), calc(100% - 48px));
     margin: 0 auto;
     padding: 8px 0 46px;
     display: grid;
-    grid-template-columns: minmax(460px, 1.08fr) minmax(390px, 0.92fr);
-    gap: clamp(28px, 4vw, 68px);
+    grid-template-columns:
+        minmax(360px, calc(var(--board-surface-max) + 2 * var(--board-frame-padding) + 2px))
+        minmax(390px, 1fr);
+    gap: clamp(28px, 4vw, 60px);
     align-items: start;
 }
 
 .board-column {
-    width: min(100%, 760px);
+    width: 100%;
+    max-width: calc(var(--board-surface-max) + 2 * var(--board-frame-padding) + 2px);
+    min-width: 0;
     justify-self: center;
 }
 
@@ -264,9 +290,11 @@ button:disabled {
 .chessboard-frame {
     width: 100%;
     aspect-ratio: 1;
-    padding: clamp(7px, 1.2vw, 12px);
+    padding: var(--board-frame-padding);
     border: 1px solid rgba(255, 255, 255, 0.12);
     border-radius: 19px;
+    display: grid;
+    place-items: center;
     background: linear-gradient(145deg, #33261d, #18120e);
     box-shadow: var(--shadow);
 }
@@ -275,6 +303,8 @@ button:disabled {
     position: relative;
     width: 100%;
     height: 100%;
+    max-width: var(--board-surface-max);
+    max-height: var(--board-surface-max);
     overflow: hidden;
     border-radius: 11px;
     background: #d28c49 url("../assets/Chess.png") center / cover no-repeat;
@@ -416,6 +446,15 @@ button:disabled {
     font-size: 1rem;
 }
 
+.flip-button.active {
+    border-color: color-mix(in srgb, var(--accent) 42%, transparent);
+    color: var(--accent-strong);
+    background: var(--accent-soft);
+    box-shadow:
+        inset 0 0 0 1px color-mix(in srgb, var(--accent) 22%, transparent),
+        inset 0 2px 5px rgba(67, 39, 20, 0.16);
+}
+
 .play-button {
     min-width: 106px;
     height: 44px;
@@ -429,6 +468,14 @@ button:disabled {
     font-size: 0.86rem;
     font-weight: 800;
     box-shadow: 0 10px 20px rgba(157, 79, 31, 0.2);
+}
+
+.play-button.active {
+    border-color: color-mix(in srgb, var(--accent-strong) 52%, transparent);
+    background: var(--accent-strong);
+    box-shadow:
+        inset 0 3px 8px rgba(70, 28, 8, 0.32),
+        0 4px 10px rgba(157, 79, 31, 0.16);
 }
 
 .speed-picker {
@@ -451,9 +498,13 @@ button:disabled {
 .speed-picker button.active {
     color: var(--accent-strong);
     background: var(--accent-soft);
+    box-shadow:
+        inset 0 0 0 1px color-mix(in srgb, var(--accent) 36%, transparent),
+        inset 0 2px 4px rgba(67, 39, 20, 0.13);
 }
 
 .analysis-panel {
+    min-width: 0;
     max-height: calc(100vh - 112px);
     min-height: 650px;
     padding: clamp(24px, 3vw, 36px);
@@ -764,6 +815,9 @@ button.move-cell:hover {
 .move-cell.active {
     color: var(--accent-strong);
     background: var(--accent-soft);
+    box-shadow:
+        inset 0 0 0 1px color-mix(in srgb, var(--accent) 32%, transparent),
+        inset 3px 0 0 var(--accent);
 }
 
 .comment-dot {
@@ -900,7 +954,9 @@ h1:focus {
 
 @media (max-width: 1050px) {
     .workspace {
-        grid-template-columns: minmax(380px, 1fr) minmax(350px, 0.88fr);
+        grid-template-columns:
+            minmax(360px, calc(var(--board-surface-max) + 2 * var(--board-frame-padding) + 2px))
+            minmax(350px, 1fr);
         gap: 28px;
     }
 
@@ -935,8 +991,24 @@ h1:focus {
 }
 
 @media (max-width: 520px) {
+    .app-shell {
+        --board-frame-padding: 6px;
+    }
+
     .app-header {
+        width: min(100% - 18px, 500px);
         min-height: 72px;
+        gap: 8px;
+    }
+
+    .brand {
+        gap: 8px;
+    }
+
+    .brand-mark {
+        width: 38px;
+        height: 38px;
+        border-radius: 11px;
     }
 
     .brand small,
@@ -945,7 +1017,7 @@ h1:focus {
     }
 
     .theme-picker button {
-        width: 34px;
+        width: 32px;
         padding: 0;
         justify-content: center;
         font-size: 0.92rem;
@@ -961,7 +1033,6 @@ h1:focus {
     }
 
     .chessboard-frame {
-        padding: 6px;
         border-radius: 14px;
     }
 
