@@ -1,0 +1,70 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches:
+      - master
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Configure GitHub Pages
+        id: pages
+        uses: actions/configure-pages@v5
+
+      - name: Restore dependencies
+        run: dotnet restore ChessVisor.slnx
+
+      - name: Run tests
+        run: dotnet test ChessVisor.slnx --configuration Release --no-restore
+
+      - name: Publish app
+        run: dotnet publish ChessVisor/ChessVisor.csproj --configuration Release --no-restore --output publish
+
+      - name: Prepare app for GitHub Pages
+        shell: bash
+        run: |
+          base_path="${{ steps.pages.outputs.base_path }}/"
+          index_path="publish/wwwroot/index.html"
+
+          sed -i "s|<base href=\"/\" />|<base href=\"$base_path\" />|" "$index_path"
+          sed -i "s|const base = \"/\";|const base = \"$base_path\";|" publish/wwwroot/service-worker.js
+          cp "$index_path" publish/wwwroot/404.html
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: publish/wwwroot
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: build
+
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
